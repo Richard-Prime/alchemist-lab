@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alchemist's Lab · 个人博客</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 粒子背景 -->
+  <canvas id="particles"></canvas>
+
+  <!-- 导航 -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="logo"><Alchemist /></a>
+      <div class="nav-links" id="navLinks">
+        <a href="#hero">首页</a>
+        <a href="#about">关于</a>
+        <a href="#blog">文章</a>
+        <a href="#projects">项目</a>
+        <a href="games.html" class="nav-game-link">🎮 游戏厅</a>
+        <a href="#contact">联系</a>
+      </div>
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <div class="hero-badge">✦ 持续探索中</div>
+      <h1 class="hero-title">
+        <span class="line">把思考</span>
+        <span class="line accent">铸造成代码</span>
+      </h1>
+      <p class="hero-desc">一枚前端工程师 / 独立开发者 / 终身学习者。<br>在这里记录技术、设计与生活的点滴。</p>
+      <div class="hero-actions">
+        <a href="#blog" class="btn primary">阅读文章</a>
+        <a href="games.html" class="btn primary" style="background: linear-gradient(135deg, var(--accent-warm), var(--accent)); box-shadow: 0 0 20px rgba(253,121,168,0.3);">🎮 游戏厅</a>
+        <a href="#about" class="btn secondary">了解更多</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="num" data-target="42">0</span><span class="label">文章</span></div>
+        <div class="stat"><span class="num" data-target="1280">0</span><span class="label">Stars</span></div>
+        <div class="stat"><span class="num" data-target="3">0</span><span class="label">年经验</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section class="section" id="about">
+    <div class="container">
+      <h2 class="section-title"><span class="hash">#</span> 关于我</h2>
+      <div class="about-grid">
+        <div class="about-text">
+          <p>你好！我是一名热爱技术与创造的全栈开发者。我相信最好的代码不仅是解决问题的工具，更是一种艺术表达。</p>
+          <p>目前专注于 <span class="highlight">React</span>、<span class="highlight">TypeScript</span> 和 <span class="highlight">Node.js</span> 技术栈，同时在探索 Rust、WebGL 与 AI 的前沿交叉领域。</p>
+          <div class="tech-stack">
+            <span>TS</span><span>React</span><span>Next</span><span>Node</span><span>Rust</span><span>Python</span><span>Docker</span>
+          </div>
+        </div>
+        <div class="about-terminal">
+          <div class="terminal-bar">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="terminal-title">about.sh</span>
+          </div>
+          <div class="terminal-body">
+            <p><span class="prompt">$</span> <span class="cmd">whoami</span></p>
+            <p class="out">→ 一名永远在路上的创造者</p>
+            <p><span class="prompt">$</span> <span class="cmd">cat skills.txt</span></p>
+            <p class="out">→ 前端架构 · 全栈开发 · UI/UX 设计</p>
+            <p><span class="prompt">$</span> <span class="cmd">uptime</span></p>
+            <p class="out">→ 编码生涯: 3 年 7 个月 12 天</p>
+            <p><span class="prompt">$</span> <span class="cmd blink">_</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Blog -->
+  <section class="section" id="blog">
+    <div class="container">
+      <h2 class="section-title"><span class="hash">#</span> 最新文章</h2>
+      <div class="blog-grid" id="blogGrid">
+        <!-- 由 JS 动态渲染 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Projects -->
+  <section class="section" id="projects">
+    <div class="container">
+      <h2 class="section-title"><span class="hash">#</span> 项目</h2>
+      <div class="projects-grid">
+        <div class="project-card">
+          <div class="project-icon">⚡</div>
+          <h3>Nova Engine</h3>
+          <p>一个轻量级的渐进式 Web 框架，用于构建高性能的交互式应用。</p>
+          <div class="project-tags"><span>TypeScript</span><span>Vite</span></div>
+          <a href="#" class="project-link">查看 →</a>
+        </div>
+        <div class="project-card">
+          <div class="project-icon">🌀</div>
+          <h3>Vortex UI</h3>
+          <p>现代化 React 组件库，聚焦于流畅动效与无障碍体验。</p>
+          <div class="project-tags"><span>React</span><span>Framer</span></div>
+          <a href="#" class="project-link">查看 →</a>
+        </div>
+        <div class="project-card">
+          <div class="project-icon">🤖</div>
+          <h3>Mindflow</h3>
+          <p>AI 驱动的思维导图工具，帮助你更高效地整理知识体系。</p>
+          <div class="project-tags"><span>Python</span><span>LLM</span></div>
+          <a href="#" class="project-link">查看 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="section" id="contact">
+    <div class="container">
+      <h2 class="section-title"><span class="hash">#</span> 联系</h2>
+      <div class="contact-content">
+        <p class="contact-desc">如果你有有趣的想法或者合作意向，欢迎随时联系。</p>
+        <div class="contact-links">
+          <a href="#" class="contact-item">
+            <span class="contact-icon"></span>
+            <span>GitHub</span>
+          </a>
+          <a href="#" class="contact-item">
+            <span class="contact-icon">✉</span>
+            <span>hello@alchemist.dev</span>
+          </a>
+          <a href="#" class="contact-item">
+            <span class="contact-icon"></span>
+            <span>@alchemist</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-text">
+        <span class="footer-cmd">$ echo "Built with ❤️ using pure vanilla"</span><br>
+        <span class="footer-out">→ © 2026 Alchemist's Lab. All rights reserved.</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
