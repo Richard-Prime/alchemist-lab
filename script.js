@@ -107,32 +107,37 @@ animateParticles();
 // ========== 2. 导航栏滚动效果 ==========
 const navbar = document.getElementById('navbar');
 
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 50) {
-    navbar.classList.add('scrolled');
-  } else {
-    navbar.classList.remove('scrolled');
-  }
-});
+if (navbar) {
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      navbar.classList.add('scrolled');
+    } else {
+      navbar.classList.remove('scrolled');
+    }
+  });
+}
 
 // ========== 3. 移动端菜单 ==========
 const menuToggle = document.getElementById('menuToggle');
 const navLinks = document.getElementById('navLinks');
 
-menuToggle.addEventListener('click', () => {
-  navLinks.classList.toggle('open');
-});
-
-// 点击链接后关闭菜单
-navLinks.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', () => {
-    navLinks.classList.remove('open');
+if (menuToggle && navLinks) {
+  menuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('open');
   });
-});
+
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+    });
+  });
+}
 
 // ========== 4. 数字滚动动画 ==========
 function animateNumbers() {
   const nums = document.querySelectorAll('.stat .num');
+
+  if (nums.length === 0) return;
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -214,6 +219,7 @@ const blogPosts = [
 
 function renderBlogPosts() {
   const grid = document.getElementById('blogGrid');
+  if (!grid) return; // 兼容 games.html 没有博客模块
   grid.innerHTML = blogPosts.map(post => `
     <article class="blog-card">
       <span class="tag">${post.tag}</span>
@@ -233,6 +239,8 @@ function setupScrollReveal() {
   const revealElements = document.querySelectorAll(
     '.section-title, .about-text, .about-terminal, .blog-card, .project-card, .contact-content'
   );
+
+  if (revealElements.length === 0) return;
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -279,7 +287,9 @@ function updateActiveNav() {
   });
 }
 
-window.addEventListener('scroll', updateActiveNav);
+if (allSections.length > 0 && navLinks) {
+  window.addEventListener('scroll', updateActiveNav);
+}
 
 console.log('%c ⚡ Alchemist\'s Lab Loaded ',
   'background: #6c5ce7; color: #fff; font-size: 14px; padding: 8px 12px; border-radius: 4px; font-weight: bold;'
