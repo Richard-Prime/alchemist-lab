@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>游戏 · Alchemist's Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .play-page .navbar.scrolled { background: rgba(10, 10, 15, 0.85); }
+
+    .play-container {
+      position: relative; z-index: 1; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 100px 24px 60px;
+    }
+
+    .play-header { text-align: center; margin-bottom: 28px; width: 100%; max-width: 640px; }
+    .play-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    .play-header .game-subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .play-scorebar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 640px; margin-bottom: 12px; padding: 12px 20px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 0.9rem;
+    }
+    .play-scorebar .score-label { color: var(--text-muted); }
+    .play-scorebar .score-value { color: var(--accent); font-weight: 600; font-size: 1.1rem; }
+    .play-scorebar .high-score-value { color: var(--accent-warm); font-weight: 600; font-size: 1.1rem; }
+    .play-scorebar .stat-label { color: var(--text-muted); }
+    .play-scorebar .stat-value { color: var(--accent-secondary); font-weight: 600; font-size: 1.1rem; }
+
+    .play-game-area {
+      display: flex; gap: 20px; align-items: flex-start;
+      width: 100%; max-width: 780px; justify-content: center;
+    }
+
+    .play-canvas-wrapper {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+    .play-canvas-wrapper canvas {
+      display: block; width: 100%; height: auto; background: #0d0d14;
+    }
+    .play-canvas-wrapper canvas.square-canvas {
+      aspect-ratio: 1;
+    }
+    .play-canvas-wrapper canvas.portrait-canvas {
+      aspect-ratio: 1 / 2;
+      max-width: 320px;
+    }
+
+    /* 侧边信息面板（俄罗斯方块用） */
+    .play-sidebar {
+      display: flex; flex-direction: column; gap: 16px; width: 140px; flex-shrink: 0;
+    }
+    .play-sidebar .sidebar-panel {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; text-align: center;
+    }
+    .play-sidebar .sidebar-panel h4 {
+      font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono);
+      margin-bottom: 10px; letter-spacing: 1px;
+    }
+    .play-sidebar .sidebar-panel canvas {
+      display: block; margin: 0 auto; width: 100%; max-width: 100px; aspect-ratio: 1;
+      background: #0d0d14; border-radius: 6px;
+    }
+    .play-sidebar .sidebar-stat {
+      display: flex; justify-content: space-between; font-family: var(--font-mono);
+      font-size: 0.82rem; padding: 4px 0;
+    }
+    .play-sidebar .sidebar-stat .lbl { color: var(--text-muted); }
+    .play-sidebar .sidebar-stat .val { color: var(--accent-secondary); }
+
+    .play-controls {
+      display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; justify-content: center;
+    }
+    .play-controls .btn { min-width: 100px; justify-content: center; }
+
+    .play-tips {
+      text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.8;
+    }
+    .play-tips kbd {
+      display: inline-block; padding: 2px 8px; font-family: var(--font-mono);
+      font-size: 0.78rem; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text-secondary);
+    }
+
+    /* 触屏方向键 */
+    .touch-controls { display: none; width: 100%; max-width: 640px; margin-top: 16px; gap: 8px; justify-content: center; }
+    .touch-btn {
+      width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text-primary); font-size: 1.5rem;
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .touch-btn:active { background: var(--accent); border-color: var(--accent); transform: scale(0.9); }
+    .touch-btn:disabled { opacity: 0.3; pointer-events: none; }
+    .touch-dpad { display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 64px 64px 64px; gap: 8px; }
+    .touch-dpad .touch-up    { grid-column: 2; grid-row: 1; }
+    .touch-dpad .touch-left  { grid-column: 1; grid-row: 2; }
+    .touch-dpad .touch-right { grid-column: 3; grid-row: 2; }
+    .touch-dpad .touch-down  { grid-column: 2; grid-row: 3; }
+    @media (pointer: coarse) { .touch-controls { display: flex; } }
+
+    @media (max-width: 800px) {
+      .play-game-area { flex-direction: column; align-items: center; }
+      .play-sidebar { flex-direction: row; width: 100%; max-width: 640px; }
+      .play-sidebar .sidebar-panel { flex: 1; }
+    }
+    @media (max-width: 480px) {
+      .play-header h1 { font-size: 1.4rem; }
+      .play-scorebar { font-size: 0.8rem; padding: 10px 14px; }
+      .play-tips { font-size: 0.75rem; }
+    }
+
+    /* Game Over Overlay */
+    .game-over-overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease; border-radius: var(--radius);
+    }
+    .game-over-overlay.show { opacity: 1; pointer-events: auto; }
+    .game-over-overlay .go-icon { font-size: 3rem; margin-bottom: 8px; }
+    .game-over-overlay .go-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .game-over-overlay .go-message { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 16px; }
+    .game-over-overlay .go-score { font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 4px; }
+    .game-over-overlay .go-high { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-warm); margin-bottom: 20px; }
+    .game-over-overlay .go-btns { display: flex; gap: 12px; }
+
+    /* 侧边栏在 Snake 模式下隐藏 */
+    .play-game-area.snake-mode .play-sidebar { display: none; }
+  </style>
+</head>
+<body class="play-page">
+  <canvas id="particles"></canvas>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo"><Alchemist /></a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">首页</a>
+        <a href="games.html">🎮 游戏厅</a>
+      </div>
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <div class="play-container">
+    <div class="play-header">
+      <h1 id="gameTitle">🐍 贪吃蛇</h1>
+      <p class="game-subtitle" id="gameSubtitle">键盘方向键 / WASD 控制，吃到食物即可得分</p>
+    </div>
+
+    <div class="play-scorebar">
+      <span><span class="score-label">得分</span> <span class="score-value" id="scoreDisplay">0</span></span>
+      <span id="extraStats"></span>
+      <span><span class="score-label">最高分</span> <span class="high-score-value" id="highScoreDisplay">0</span></span>
+    </div>
+
+    <div class="play-game-area" id="gameArea">
+      <!-- 主画布 -->
+      <div class="play-canvas-wrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-over-overlay" id="gameOverOverlay">
+          <div class="go-icon" id="goIcon">💀</div>
+          <div class="go-title" id="goTitle">Game Over</div>
+          <div class="go-message" id="goMessage">撞墙啦！💥</div>
+          <div class="go-score">得分：<span id="goScore">0</span></div>
+          <div class="go-high">🏆 最高分：<span id="goHigh">0</span></div>
+          <div class="go-btns">
+            <button class="btn primary" id="restartBtn">🔄 再来一局</button>
+            <a href="games.html" class="btn secondary">← 返回游戏厅</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 侧边面板（俄罗斯方块用） -->
+      <div class="play-sidebar" id="sidebar">
+        <div class="sidebar-panel">
+          <h4>NEXT</h4>
+          <canvas id="previewCanvas" width="120" height="120"></canvas>
+        </div>
+        <div class="sidebar-panel">
+          <h4>INFO</h4>
+          <div class="sidebar-stat"><span class="lbl">等级</span><span class="val" id="levelDisplay">1</span></div>
+          <div class="sidebar-stat"><span class="lbl">行数</span><span class="val" id="linesDisplay">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="play-controls">
+      <button class="btn primary" id="startBtn">▶ 开始游戏</button>
+      <button class="btn secondary" id="pauseBtn" disabled>⏸ 暂停</button>
+    </div>
+
+    <div class="touch-controls" id="touchControls">
+      <div class="touch-dpad">
+        <button class="touch-btn touch-up" data-dir="up">↑</button>
+        <button class="touch-btn touch-left" data-dir="left">←</button>
+        <button class="touch-btn touch-right" data-dir="right">→</button>
+        <button class="touch-btn touch-down" data-dir="down">↓</button>
+      </div>
+    </div>
+
+    <div class="play-tips" id="playTips">
+      <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 控制方向 &nbsp;·&nbsp; <kbd>Space</kbd> <kbd>P</kbd> 暂停
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-text">
+        <span class="footer-cmd">$ echo "Loading game..."</span><br>
+        <span class="footer-out" id="footerOut">→ © 2026 Alchemist's Lab. Built with Canvas.</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <!-- 静态加载所有游戏脚本（文件小，file:// 协议兼容） -->
+  <script src="games/snake.js"></script>
+  <script src="games/tetris.js"></script>
+  <script src="version.js"></script>
+  <script>
+    // ========== 游戏配置 ==========
+    const GAME_CONFIG = {
+      snake: {
+        className: 'SnakeGame',
+        title: '🐍 贪吃蛇',
+        subtitle: '键盘方向键 / WASD 控制，吃到食物即可得分',
+        tips: '<kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 控制方向 &nbsp;·&nbsp; <kbd>Space</kbd> <kbd>P</kbd> 暂停',
+        footerMsg: '$ echo "Snake — the classic never gets old."',
+        mode: 'snake',
+      },
+      tetris: {
+        className: 'TetrisGame',
+        title: '🧱 俄罗斯方块',
+        subtitle: '方向键移动旋转，消除满行得分，挑战最高分！',
+        tips: '<kbd>←</kbd> <kbd>→</kbd> 移动 &nbsp;·&nbsp; <kbd>↑</kbd> 旋转 &nbsp;·&nbsp; <kbd>↓</kbd> 加速下落 &nbsp;·&nbsp; <kbd>Space</kbd> 硬降 &nbsp;·&nbsp; <kbd>P</kbd> 暂停',
+        footerMsg: '$ echo "Tetris — lines never end."',
+        mode: 'tetris',
+      }
+    };
+
+    // ========== 页面状态 ==========
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameId = urlParams.get('game') || 'snake';
+    const config = GAME_CONFIG[gameId] || GAME_CONFIG.snake;
+    let game = null;
+    // 从游戏注册表中获取类
+    let GameClass = (window.__GAMES && window.__GAMES[gameId]) || null;
+
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const gameArea = document.getElementById('gameArea');
+    const extraStats = document.getElementById('extraStats');
+    const levelDisplay = document.getElementById('levelDisplay');
+    const linesDisplay = document.getElementById('linesDisplay');
+
+    // ========== 根据游戏配置初始化页面 ==========
+    function initPage() {
+      document.getElementById('gameTitle').textContent = config.title;
+      document.getElementById('gameSubtitle').textContent = config.subtitle;
+      document.getElementById('playTips').innerHTML = config.tips;
+      document.querySelector('.footer-cmd').textContent = config.footerMsg;
+      gameArea.className = 'play-game-area ' + config.mode + '-mode';
+
+      // 根据游戏模式设置Canvas CSS类（控制宽高比和最大宽度）
+      const canvas = document.getElementById('gameCanvas');
+      canvas.className = config.mode === 'tetris' ? 'portrait-canvas' : 'square-canvas';
+
+      if (!GameClass) {
+        console.error('Game class not found:', config.className);
+      } else {
+        console.log(`%c 🎮 ${config.title} Module Loaded `,
+          'background: #6c5ce7; color: #fff; font-size: 14px; padding: 8px 12px; border-radius: 4px; font-weight: bold;'
+        );
+      }
+    }
+
+    // ========== 游戏控制 ==========
+    function startGame() {
+      if (!GameClass) {
+        console.error('Game class not available:', config.className);
+        return;
+      }
+      if (game) { game.destroy(); }
+      gameOverOverlay.classList.remove('show');
+
+      game = new GameClass('gameCanvas', {
+        onScoreChange: (score) => {
+          scoreDisplay.textContent = score;
+        },
+        onGameOver: (message, score, highScore, isWin) => {
+          document.getElementById('goIcon').textContent = isWin ? '🎉' : '💀';
+          document.getElementById('goTitle').textContent = isWin ? '恭喜通关！' : 'Game Over';
+          document.getElementById('goMessage').textContent = message;
+          document.getElementById('goScore').textContent = score;
+          document.getElementById('goHigh').textContent = highScore;
+          gameOverOverlay.classList.add('show');
+
+          highScoreDisplay.textContent = highScore;
+          startBtn.textContent = '🔄 再来一局';
+          pauseBtn.disabled = true;
+          pauseBtn.textContent = '⏸ 暂停';
+          updateExtraStats();
+        }
+      });
+
+      highScoreDisplay.textContent = game.highScore || '0';
+      scoreDisplay.textContent = '0';
+      updateExtraStats();
+
+      game.bindControls();
+      game.start();
+
+      startBtn.textContent = '🔄 重新开始';
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '⏸ 暂停';
+    }
+
+    function updateExtraStats() {
+      if (game && game.level !== undefined) {
+        levelDisplay.textContent = game.level;
+        linesDisplay.textContent = game.lines;
+        extraStats.innerHTML = '<span class="stat-label">等级</span> <span class="stat-value">Lv.' + (game.level || 1) + '</span>';
+      } else {
+        extraStats.innerHTML = '';
+      }
+    }
+
+    function togglePause() {
+      if (!game || !game.isRunning) return;
+      game.togglePause();
+      pauseBtn.textContent = game.isPaused ? '▶ 继续' : '⏸ 暂停';
+    }
+
+    // ========== 触屏方向控制 ==========
+    document.querySelectorAll('[data-dir]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!game || !game.isRunning || game.isGameOver || game.isPaused) return;
+        const dir = btn.dataset.dir;
+        switch (dir) {
+          case 'up':
+            if (game.rotate) game.rotate();
+            else if (game.setDirection) game.setDirection(0, -1);
+            break;
+          case 'down':
+            if (game.move) game.move(0, 1);
+            else if (game.setDirection) game.setDirection(0, 1);
+            break;
+          case 'left':
+            if (game.moveLeft) game.moveLeft();
+            else if (game.setDirection) game.setDirection(-1, 0);
+            break;
+          case 'right':
+            if (game.moveRight) game.moveRight();
+            else if (game.setDirection) game.setDirection(1, 0);
+            break;
+        }
+      });
+    });
+
+    // ========== 事件绑定 ==========
+    startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('restartBtn').addEventListener('click', () => startGame());
+
+    // ========== 初始化 ==========
+    initPage();
+  </script>
+</body>
+</html>

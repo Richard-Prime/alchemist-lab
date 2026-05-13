@@ -12,7 +12,7 @@ const gamesData = [
     desc: '经典街机玩法，键盘方向键控制，吃豆长大，撞墙即死。',
     category: 'arcade',
     difficulty: 'easy',
-    status: 'coming-soon', // coming-soon | in-progress | ready
+    status: 'ready', // coming-soon | in-progress | ready
   },
   {
     id: 'tetris',
@@ -21,7 +21,7 @@ const gamesData = [
     desc: '经典下落式方块消除游戏，支持旋转、加速、预览下一个。',
     category: 'puzzle',
     difficulty: 'medium',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'minesweeper',
@@ -98,12 +98,12 @@ function renderGames(filter = 'all') {
 
   grid.innerHTML = filtered.map((game, index) => {
     const diffLabel = { easy: '简单', medium: '中等', hard: '困难' };
-    const statusLabel = game.status === 'coming-soon' ? '🔥 开发中' : '🎮 开玩';
+  const statusLabel = game.status === 'coming-soon' ? '🔥 开发中' : game.status === 'ready' ? '🎮 开玩' : '🚧 施工中';
 
     return `
-      <div class="game-card" data-game-id="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 0.08}s">
+      <div class="game-card ${game.status === 'ready' ? 'game-ready' : ''}" data-game-id="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 0.08}s">
         <div class="game-card-icon">${game.icon}</div>
-        <h3>${game.title}</h3>
+        <h3>${game.title} ${game.status === 'ready' ? '<span class="game-ready-badge">▶ 开玩</span>' : ''}</h3>
         <p>${game.desc}</p>
         <div class="game-meta">
           <span class="game-tag">${game.category === 'action' ? '动作' : game.category === 'puzzle' ? '益智' : game.category === 'arcade' ? '街机' : '策略'}</span>
@@ -127,9 +127,10 @@ function renderGames(filter = 'all') {
 function handleGameClick(game) {
   if (game.status === 'coming-soon') {
     showComingSoon(game);
+  } else if (game.status === 'ready') {
+    window.location.href = `play-${game.id}.html`;
   } else {
-    // 后续实现具体游戏时，这里跳转到具体游戏页
-    window.location.href = `play.html?game=${game.id}`;
+    showComingSoon(game);
   }
 }
 
@@ -242,6 +243,7 @@ renderGames();
 console.log('%c 🎮 Game Hub Loaded ',
   'background: #fd79a8; color: #fff; font-size: 14px; padding: 8px 12px; border-radius: 4px; font-weight: bold;'
 );
-console.log(`%c 📦 ${gamesData.length} games planned, 0 implemented. Let's build!`,
+const tetrisReadyCount = gamesData.filter(g => g.status === 'ready').length;
+console.log(`%c 📦 ${gamesData.length} games planned, ${tetrisReadyCount} implemented. Let's build!`,
   'color: #00cec9; font-size: 12px;'
 );

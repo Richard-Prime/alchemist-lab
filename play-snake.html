@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐍 贪吃蛇 · Alchemist's Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .play-page .navbar.scrolled { background: rgba(10, 10, 15, 0.85); }
+
+    .play-container {
+      position: relative; z-index: 1; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 100px 24px 60px;
+    }
+
+    .play-header { text-align: center; margin-bottom: 28px; width: 100%; max-width: 640px; }
+    .play-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    .play-header .game-subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .play-scorebar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 640px; margin-bottom: 12px; padding: 12px 20px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 0.9rem;
+    }
+    .play-scorebar .score-label { color: var(--text-muted); }
+    .play-scorebar .score-value { color: var(--accent); font-weight: 600; font-size: 1.1rem; }
+    .play-scorebar .high-score-value { color: var(--accent-warm); font-weight: 600; font-size: 1.1rem; }
+
+    .play-canvas-wrapper {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    }
+    .play-canvas-wrapper canvas {
+      display: block; width: 100%; height: auto; aspect-ratio: 1; background: #0d0d14;
+    }
+
+    .play-controls {
+      display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; justify-content: center;
+    }
+    .play-controls .btn { min-width: 100px; justify-content: center; }
+
+    .play-tips {
+      text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.8;
+    }
+    .play-tips kbd {
+      display: inline-block; padding: 2px 8px; font-family: var(--font-mono);
+      font-size: 0.78rem; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text-secondary);
+    }
+
+    .touch-controls { display: none; width: 100%; max-width: 640px; margin-top: 16px; gap: 8px; justify-content: center; }
+    .touch-btn {
+      width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text-primary); font-size: 1.5rem;
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .touch-btn:active { background: var(--accent); border-color: var(--accent); transform: scale(0.9); }
+    .touch-dpad { display: grid; grid-template-columns: 64px 64px 64px; grid-template-rows: 64px 64px 64px; gap: 8px; }
+    .touch-dpad .touch-up    { grid-column: 2; grid-row: 1; }
+    .touch-dpad .touch-left  { grid-column: 1; grid-row: 2; }
+    .touch-dpad .touch-right { grid-column: 3; grid-row: 2; }
+    .touch-dpad .touch-down  { grid-column: 2; grid-row: 3; }
+    @media (pointer: coarse) { .touch-controls { display: flex; } }
+
+    @media (max-width: 480px) {
+      .play-header h1 { font-size: 1.4rem; }
+      .play-scorebar { font-size: 0.8rem; padding: 10px 14px; }
+      .play-tips { font-size: 0.75rem; }
+    }
+
+    .game-over-overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease; border-radius: var(--radius);
+    }
+    .game-over-overlay.show { opacity: 1; pointer-events: auto; }
+    .game-over-overlay .go-icon { font-size: 3rem; margin-bottom: 8px; }
+    .game-over-overlay .go-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .game-over-overlay .go-message { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 16px; }
+    .game-over-overlay .go-score { font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 4px; }
+    .game-over-overlay .go-high { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-warm); margin-bottom: 20px; }
+    .game-over-overlay .go-btns { display: flex; gap: 12px; }
+  </style>
+</head>
+<body class="play-page">
+  <canvas id="particles"></canvas>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo"><Alchemist /></a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">首页</a>
+        <a href="games.html">🎮 游戏厅</a>
+      </div>
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <div class="play-container">
+    <div class="play-header">
+      <h1>🐍 贪吃蛇</h1>
+      <p class="game-subtitle">键盘方向键 / WASD 控制，吃到食物即可得分</p>
+    </div>
+
+    <div class="play-scorebar">
+      <span><span class="score-label">得分</span> <span class="score-value" id="scoreDisplay">0</span></span>
+      <span><span class="score-label">最高分</span> <span class="high-score-value" id="highScoreDisplay">0</span></span>
+    </div>
+
+    <div class="play-canvas-wrapper">
+      <canvas id="gameCanvas" width="640" height="640"></canvas>
+      <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="go-icon" id="goIcon">💀</div>
+        <div class="go-title" id="goTitle">Game Over</div>
+        <div class="go-message" id="goMessage">撞墙啦！💥</div>
+        <div class="go-score">得分：<span id="goScore">0</span></div>
+        <div class="go-high">🏆 最高分：<span id="goHigh">0</span></div>
+        <div class="go-btns">
+          <button class="btn primary" id="restartBtn">🔄 再来一局</button>
+          <a href="games.html" class="btn secondary">← 返回游戏厅</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="play-controls">
+      <button class="btn primary" id="startBtn">▶ 开始游戏</button>
+      <button class="btn secondary" id="pauseBtn" disabled>⏸ 暂停</button>
+    </div>
+
+    <div class="touch-controls">
+      <div class="touch-dpad">
+        <button class="touch-btn touch-up" data-dir="up">↑</button>
+        <button class="touch-btn touch-left" data-dir="left">←</button>
+        <button class="touch-btn touch-right" data-dir="right">→</button>
+        <button class="touch-btn touch-down" data-dir="down">↓</button>
+      </div>
+    </div>
+
+    <div class="play-tips">
+      <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 控制方向 &nbsp;·&nbsp; <kbd>Space</kbd> <kbd>P</kbd> 暂停
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-text">
+        <span class="footer-cmd">$ echo "Snake — the classic never gets old."</span><br>
+        <span class="footer-out">→ © 2026 Alchemist's Lab. Built with Canvas.</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="games/snake.js"></script>
+  <script src="version.js"></script>
+  <script>
+    let game = null;
+
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+
+    function startGame() {
+      if (game) { game.destroy(); }
+      gameOverOverlay.classList.remove('show');
+      highScoreDisplay.textContent = localStorage.getItem('snake_high') || '0';
+      scoreDisplay.textContent = '0';
+
+      game = new SnakeGame('gameCanvas', {
+        onScoreChange: (score) => { scoreDisplay.textContent = score; },
+        onGameOver: (message, score, highScore, isWin) => {
+          document.getElementById('goIcon').textContent = isWin ? '🎉' : '💀';
+          document.getElementById('goTitle').textContent = isWin ? '恭喜通关！' : 'Game Over';
+          document.getElementById('goMessage').textContent = message;
+          document.getElementById('goScore').textContent = score;
+          document.getElementById('goHigh').textContent = highScore;
+          gameOverOverlay.classList.add('show');
+          highScoreDisplay.textContent = highScore;
+          startBtn.textContent = '🔄 再来一局';
+          pauseBtn.disabled = true;
+          pauseBtn.textContent = '⏸ 暂停';
+        }
+      });
+
+      game.bindControls();
+      game.start();
+      startBtn.textContent = '🔄 重新开始';
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '⏸ 暂停';
+    }
+
+    function togglePause() {
+      if (!game || !game.isRunning) return;
+      game.togglePause();
+      pauseBtn.textContent = game.isPaused ? '▶ 继续' : '⏸ 暂停';
+    }
+
+    document.querySelectorAll('[data-dir]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!game || !game.isRunning || game.isGameOver || game.isPaused) return;
+        const dir = btn.dataset.dir;
+        if (game.setDirection) {
+          switch (dir) {
+            case 'up': game.setDirection(0, -1); break;
+            case 'down': game.setDirection(0, 1); break;
+            case 'left': game.setDirection(-1, 0); break;
+            case 'right': game.setDirection(1, 0); break;
+          }
+        }
+      });
+    });
+
+    startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('restartBtn').addEventListener('click', startGame);
+
+    highScoreDisplay.textContent = localStorage.getItem('snake_high') || '0';
+  </script>
+</body>
+</html>
