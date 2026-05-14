@@ -39,14 +39,15 @@
 alchemist-lab/
 ├── index.html          # 博客主页
 ├── games.html          # 游戏厅页面
-├── play.html           # 游戏播放页（通用，?game=xxx 参数区分，动态加载游戏）
-├── styles.css          # 全局样式表（~1100行，含所有页面样式）
-├── script.js           # 主页交互脚本（粒子系统、导航、动画、博客渲染）
-├── games.js            # 游戏厅交互脚本（游戏数据、筛选、弹窗）
+├── styles.css          # 全局样式表
+├── script.js           # 主页交互脚本
+├── games.js            # 游戏厅交互脚本
 ├── games/
-│   ├── snake.js        # 贪吃蛇游戏模块 (SnakeGame 类)
-│   └── tetris.js       # 俄罗斯方块游戏模块 (TetrisGame 类)
-├── version.js          # 版本号标识（自执行脚本，注入右下角徽章）
+│   ├── snake.js        # 贪吃蛇游戏模块
+│   └── tetris.js       # 俄罗斯方块游戏模块
+├── play-snake.html     # 贪吃蛇独立游戏页
+├── play-tetris.html    # 俄罗斯方块独立游戏页
+├── version.js          # 版本号标识
 ├── vercel.json         # Vercel 部署配置
 ├── .gitignore
 └── AGENT_GUIDE.md      # 本文档
@@ -59,8 +60,8 @@ alchemist-lab/
 | `*.html` | 页面结构、内联 style（页面专用样式）、内联 script（页面初始化逻辑） | 全局样式、可复用的业务逻辑 |
 | `styles.css` | CSS 变量、全局样式、所有页面的共享样式 | 页面级内联样式（应放在各自 HTML 中） |
 | `script.js` | 粒子背景、导航滚动、移动端菜单、数字动画、博客渲染、滚动渐入、锚点高亮 | 页面特有的初始化逻辑（放在各自 HTML 内联 script） |
-| `games/*.js` | 单个游戏的 Game 类（如 `SnakeGame` / `TetrisGame`），通过构造函数 + 回调与页面交互 | DOM 操作、UI 渲染外的页面控制逻辑 |
-| `play.html` 内联 script | 游戏 ID 映射表 `GAME_CONFIG`、动态脚本加载、开始/暂停/重启函数、触屏绑定 | 具体的游戏逻辑（应放在 `games/*.js`） |
+| `games/*.js` | 单个游戏的 Game 类，通过构造函数 + 回调与页面交互 | DOM 操作、UI 渲染外的页面控制逻辑 |
+| `play-xxx.html` 内联 script | 游戏初始化、事件绑定 | 具体的游戏逻辑（应放在 `games/*.js`） |
 | `version.js` | 版本号常量 + 自动注入徽章的 IIFE | 任何其他业务逻辑 |
 
 ---
@@ -69,60 +70,57 @@ alchemist-lab/
 
 ### 4.1 色彩系统
 
-所有颜色通过 CSS 变量定义在 `:root` 中：
+所有颜色通过 CSS 变量定义：
 
-```css
-:root {
-  --bg-primary: #0a0a0f;      /* 主背景 - 极深黑紫 */
-  --bg-secondary: #12121a;    /* 次级背景 */
-  --bg-card: #181825;         /* 卡片背景 */
-  --text-primary: #e8e8f0;    /* 主文字 - 亮白灰 */
-  --text-secondary: #9090a8;  /* 次级文字 - 中灰紫 */
-  --text-muted: #606078;      /* 弱化文字 - 暗灰紫 */
-  --accent: #6c5ce7;          /* 主强调色 - 紫色 */
-  --accent-glow: rgba(108, 92, 231, 0.3);  /* 紫色发光 */
-  --accent-secondary: #00cec9; /* 次强调色 - 青色 */
-  --accent-warm: #fd79a8;     /* 暖色强调 - 粉色 */
-  --border: #1e1e30;          /* 边框色 */
-}
-```
+| 变量 | 值 | 用途 |
+|------|-----|------|
+| `--bg-primary` | `#0a0a0f` | 主背景 - 极深黑紫 |
+| `--bg-secondary` | `#12121a` | 次级背景 |
+| `--bg-card` | `#181825` | 卡片背景 |
+| `--text-primary` | `#e8e8f0` | 主文字 - 亮白灰 |
+| `--text-secondary` | `#9090a8` | 次级文字 - 中灰紫 |
+| `--text-muted` | `#606078` | 弱化文字 - 暗灰紫 |
+| `--accent` | `#6c5ce7` | 主强调色 - 紫色 |
+| `--accent-glow` | `rgba(108, 92, 231, 0.3)` | 紫色发光 |
+| `--accent-secondary` | `#00cec9` | 次强调色 - 青色 |
+| `--accent-warm` | `#fd79a8` | 暖色强调 - 粉色 |
+| `--border` | `#1e1e30` | 边框色 |
 
 **色彩使用规则：**
-- 主按钮 / 链接：`var(--accent)` 紫色
-- 悬停 / 技术标签：`var(--accent-secondary)` 青色
-- 游戏相关 / 暖色点缀：`var(--accent-warm)` 粉色
+- 主按钮 / 链接：`--accent` 紫色
+- 悬停 / 技术标签：`--accent-secondary` 青色
+- 游戏相关 / 暖色点缀：`--accent-warm` 粉色
 - 背景层叠：`--bg-primary` → `--bg-secondary` → `--bg-card`（由深到浅）
 - 按钮不可用时：`disabled` + `opacity: 0.3`，不要改变色相
 - **禁止使用纯黑色 (#000) 或纯白色 (#fff) 作为背景或文字**（极少数情况如 snake 眼睛除外）
 
 ### 4.2 字体系统
 
-```css
---font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
---font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-```
+| 变量 | 值 |
+|------|-----|
+| `--font-sans` | `'Inter', -apple-system, BlinkMacSystemFont, sans-serif` |
+| `--font-mono` | `'JetBrains Mono', 'Fira Code', monospace` |
 
-- 正文字体：`var(--font-sans)`
-- 代码/统计/技术标签：`var(--font-mono)`
-- **禁止使用系统默认字体**，始终使用上述字体变量
+- 正文字体：`--font-sans`
+- 代码/统计/技术标签：`--font-mono`
+- **禁止使用系统默认字体**
 
 ### 4.3 间距与圆角
 
-```css
---radius: 12px;     /* 卡片、容器主圆角 */
---radius-sm: 8px;   /* 小元素圆角 */
---transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);  /* 统一过渡曲线 */
-```
+| 变量 | 值 |
+|------|-----|
+| `--radius` | `12px` |
+| `--radius-sm` | `8px` |
+| `--transition` | `0.3s cubic-bezier(0.4, 0, 0.2, 1)` |
 
 - 卡片内边距：24-28px
-- 元素间距：8px / 12px / 16px / 24px / 32px / 48px
-- 拒绝零散的间距值，尽量使用 4 的倍数
+- 元素间距：遵循 4 的倍数（8 / 12 / 16 / 24 / 32 / 48）
 
 ### 4.4 阴影
 
-```css
---shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-```
+| 变量 | 值 |
+|------|-----|
+| `--shadow` | `0 0 40px rgba(0, 0, 0, 0.5)` |
 
 - 卡片 hover 时使用 `box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3)`
 - 发光按钮：`box-shadow: 0 0 20px var(--accent-glow)`
@@ -138,7 +136,6 @@ alchemist-lab/
 ```html
 <button class="btn primary">主要按钮</button>
 <button class="btn secondary">次要按钮</button>
-<a href="#" class="btn primary">链接按钮</a>
 ```
 
 - 圆角：`border-radius: 100px`（药丸形状）
@@ -147,7 +144,7 @@ alchemist-lab/
 
 ### 5.2 卡片
 
-- 背景：`var(--bg-card)`
+- 背景：`--bg-card`
 - 边框：`1px solid var(--border)`
 - 圆角：`var(--radius)`
 - hover：`translateY(-4px)` + 增强阴影
@@ -159,16 +156,7 @@ alchemist-lab/
 - `scrolled` 状态：`backdrop-filter: blur(20px)` + 半透明背景 + 底部边框
 - 链接底部下划线：`::after` 伪元素，hover 时 `width: 100%`
 
-### 5.4 Section 标题
-
-```html
-<h2 class="section-title"><span class="hash">#</span> 标题文字</h2>
-```
-
-- `#` 符号使用 `var(--accent)` 紫色
-- 标题与内容间距：48px
-
-### 5.5 游戏卡片
+### 5.4 游戏卡片
 
 游戏卡片多了 `game-ready` 状态（已实现可玩的游戏）：
 - 青色边框 + 青色渐变顶部线
@@ -178,49 +166,41 @@ alchemist-lab/
 
 ## 6. 游戏开发规范
 
-### 6.1 游戏模块结构
+### 6.1 游戏模块接口
 
-每个游戏独立一个文件放在 `games/` 目录下，通过类（Class）封装：
+所有游戏类必须实现以下方法：
 
-```js
-class XXXGame {
-  constructor(canvasId, options) {
-    // canvasId: Canvas 元素的 id
-    // options.onScoreChange(score) — 分数变化回调
-    // options.onGameOver(message, score, highScore, isWin) — 游戏结束回调
-  }
-
-  bindControls()   // 绑定键盘事件
-  unbindControls() // 解绑键盘事件
-  start()          // 开始游戏
-  stop()           // 停止游戏循环
-  pause()          // 暂停
-  resume()         // 继续
-  togglePause()    // 切换暂停
-  destroy()        // 销毁（清理定时器、事件监听）
-  reset()          // 重置状态
-}
-```
+| 方法 | 说明 |
+|------|------|
+| `constructor(canvasId, options)` | canvasId: Canvas 元素 id; options: `{ onScoreChange, onGameOver }` |
+| `bindControls()` | 绑定键盘事件 |
+| `unbindControls()` | 解绑键盘事件 |
+| `start()` | 开始游戏 |
+| `stop()` | 停止游戏循环 |
+| `pause()` | 暂停 |
+| `resume()` | 继续 |
+| `togglePause()` | 切换暂停 |
+| `destroy()` | 销毁（清理定时器、事件监听） |
+| `reset()` | 重置状态 |
 
 ### 6.2 新增游戏步骤
 
-1. 创建 `games/xxx.js`，实现 `XXXGame` 类（遵循 6.1 接口）
-2. 将游戏类挂载到 `window` 上（`play.html` 通过 `window[className]` 动态获取）
-3. 在 `play.html` 的 `GAME_CONFIG` 中添加游戏配置项（script路径、className、标题、操作提示等）
-4. 将 `games.js` 中的游戏数据 `status` 从 `coming-soon` 改为 `ready`
-5. 更新 `version.js` 的 `BUILD_TIME`
+1. 创建 `games/xxx.js`，实现 `XXXGame` 类（遵循 6.1 接口），底部注册到 `window.__GAMES`
+2. 创建 `play-xxx.html` 独立游戏页面
+3. 将 `games.js` 中的游戏数据 `status` 从 `coming-soon` 改为 `ready`
+4. 更新 `version.js` 的 `BUILD_TIME`
 
 ### 6.3 游戏生命周期
 
 ```
-调用 start()
+start()
   → 初始化状态
-  → 启动游戏循环（requestAnimationFrame / setInterval / setTimeout）
+  → 启动游戏循环
   → 循环中：更新状态 → 碰撞检测 → Canvas 渲染
   → 游戏结束 → 调用 onGameOver 回调
   → 用户点击"再来一局" → 调用 start() 重新开始
 
-调用 destroy()
+destroy()
   → 停止循环
   → 解绑键盘事件
   → 清理所有引用
@@ -230,7 +210,7 @@ class XXXGame {
 
 - 背景色：`#0d0d14`（比主背景略深）
 - 网格线：极淡线条 `rgba(30, 30, 48, 0.3)`
-- 方块：圆角矩形（`roundRect` 方法），带渐变色 + 高光/阴影（3D 立体感）
+- 方块：圆角矩形，带渐变色 + 高光/阴影（3D 立体感）
 - 食物/道具：发光效果（`createRadialGradient`）
 - 暂停遮罩：半透明黑色 + 居中文字
 - Game Over 不在 Canvas 内渲染，通过 `onGameOver` 回调由页面展示 overlay
@@ -250,8 +230,8 @@ localStorage.setItem('tetris_high', String(score))
 ### 7.1 粒子背景
 
 - 位于所有页面，`canvas#particles` 固定定位在最底层（z-index: 0）
-- 粒子数量：根据屏幕大小动态计算 `canvas.width * canvas.height / 12000`，上限 80
-- 颜色随机：紫色系（hue 250）或青色系（hue 180）
+- 粒子数量：根据屏幕大小动态计算，上限 80
+- 颜色随机：紫色系或青色系
 - 鼠标交互：200px 范围内的粒子受鼠标引力影响
 - 粒子连线：间距 <150px 时画半透明连线
 
@@ -265,15 +245,14 @@ localStorage.setItem('tetris_high', String(score))
 ### 7.3 数字递增动画
 
 - 目标元素：`data-target` 属性存储最终值
-- 时长：2000ms
-- 缓动：`easeOutCubic`（`1 - (1-t)^3`）
+- 时长：2000ms，缓动：`easeOutCubic`
 - 阈值：`threshold: 0.5`
 
 ### 7.4 版本号徽章
 
 - 固定定位右下角，`z-index: 9999`
 - 半透明背景 + blur，圆角药丸
-- 格式：`⚡ v2026.05.13.2241`
+- 格式：`⚡ v2026.05.14.2355`
 - 由 `version.js` 自动注入，所有页面共享
 
 ---
@@ -282,13 +261,13 @@ localStorage.setItem('tetris_high', String(score))
 
 | 断点 | 变化 |
 |------|------|
-| **<= 768px** | 导航变汉堡菜单、about 变单列、统计间距缩小、section padding 缩小 |
+| **<= 768px** | 导航变汉堡菜单、about 变单列、统计间距缩小 |
 | **<= 480px** | 游戏网格变单列、标题字号缩小 |
 
-- 汉堡菜单：三横线按钮（`menu-toggle`），点击切换 `nav-links` 的 `open` class
-- 网格布局使用 `repeat(auto-fill, minmax(280px, 1fr))` 自动适配
-- 标题字号使用 `clamp()`：`clamp(2.5rem, 6vw, 4.5rem)`
-- 游戏方向键（触屏）：`@media (pointer: coarse)` 检测触屏设备后 display: flex
+- 汉堡菜单：`menu-toggle` 按钮，点击切换 `nav-links` 的 `open` class
+- 网格布局：`repeat(auto-fill, minmax(280px, 1fr))`
+- 标题字号：`clamp(2.5rem, 6vw, 4.5rem)`
+- 触屏方向键：`@media (pointer: coarse)` 检测后 `display: flex`
 
 ---
 
@@ -298,18 +277,18 @@ localStorage.setItem('tetris_high', String(score))
 
 | 类型 | 命名 | 示例 |
 |------|------|------|
-| 组件 | 全小写中划线 | `.navbar` `.blog-card` `.game-modal` |
-| 状态 modifier | 后缀 | `.navbar.scrolled` `.filter-btn.active` `.game-card.game-ready` |
-| JS 钩子 | `id` 或 `data-*` | `#gameCanvas` `data-game-id` `data-dir` |
+| 组件 | 全小写中划线 | `.navbar` `.blog-card` |
+| 状态 modifier | 后缀 | `.navbar.scrolled` `.game-card.game-ready` |
+| JS 钩子 | `id` 或 `data-*` | `#gameCanvas` `data-game-id` |
 
 ### 9.2 JavaScript
 
 | 类型 | 命名 | 示例 |
 |------|------|------|
 | 类 | PascalCase | `SnakeGame` / `TetrisGame` |
-| 函数/变量 | camelCase | `startGame` `highScore` `gameOverOverlay` |
+| 函数/变量 | camelCase | `startGame` `highScore` |
 | 常量 | UPPER_SNAKE_CASE | `BUILD_TIME` |
-| 私有（内部） | 下划线前缀（约定） | `this._keyHandler` |
+| 私有（内部） | 下划线前缀 | `this._keyHandler` |
 
 ### 9.3 HTML id
 
@@ -323,28 +302,27 @@ localStorage.setItem('tetris_high', String(score))
 ### 10.1 必须遵守的规则
 
 1. **零外部依赖** — 禁止引入 npm 包、CDN 库（Google Fonts 除外）
-2. **零图片资源** — 禁止使用 JPG/PNG/SVG/WebP，全部用 Canvas / CSS / Emoji 实现
-3. **纯 ES6+ Vanilla JS** — 禁止使用 TypeScript、JSX、Vue、React 等
-4. **所有颜色必须使用 CSS 变量** — 禁止硬编码颜色值（`#fff` `#000` 等仅在极特殊场景允许）
-5. **所有间距使用 4 的倍数** — 禁止零散的间距值
-6. **新游戏必须遵循 6.1 节的 Game Class 规范** — 实现 `start/stop/pause/resume/destroy/bindControls`
-7. **游戏数据更新后同步更新 `games.js` 中的 `status` 字段** — `coming-soon` → `ready`
+2. **零图片资源** — 禁止使用 JPG/PNG/SVG/WebP，全部用 Canvas / CSS / Emoji
+3. **纯 ES6+ Vanilla JS** — 禁止 TypeScript、JSX、Vue、React 等
+4. **所有颜色必须使用 CSS 变量** — 禁止硬编码颜色值
+5. **所有间距使用 4 的倍数**
+6. **新游戏必须遵循 6.1 节的 Game Class 接口规范**
+7. **游戏数据更新后同步更新 `games.js` 中的 `status` 字段**
 8. **Game Over UI 不在 Canvas 内渲染** — 通过 `onGameOver` 回调由页面渲染 overlay
-9. **新增游戏后必须同步更新 `play.html` 的 `GAME_CONFIG`** — 添加 script 路径、className、标题等配置
+9. **新增游戏需创建独立 `play-xxx.html` 页面**，不要修改通用 `play.html`
 
 ### 10.2 版本管理规范
 
-1. **每次对项目进行任何修改（包括但不限于新增功能、修复 Bug、样式调整、内容更新），都必须同步更新 `version.js` 中的 `BUILD_TIME` 常量**
-2. 版本号格式：`YYYY.MM.DD.HHmm`（24 小时制，例如 `2026.05.13.2241`）
-3. `BUILD_TIME` 使用构建/修改时的实际时间，禁止使用占位符或固定值
-4. 更新 `BUILD_TIME` 是每次提交的最后一步，确保记录的是实际的发布时间
+1. **每次对项目进行任何修改，都必须同步更新 `version.js` 中的 `BUILD_TIME` 常量**
+2. 版本号格式：`YYYY.MM.DD.HHmm`（24 小时制，例如 `2026.05.14.2355`）
+3. `BUILD_TIME` 使用修改时的实际时间，禁止使用占位符
+4. 更新 `BUILD_TIME` 是每次提交的最后一步
 
 ### 10.3 新增文件的规范
 
 - 新增游戏文件 → 放入 `games/` 目录
 - 新增页面 → 直接放在根目录 `*.html`
 - 新增样式 → 优先使用 `styles.css`，页面专用样式放在 HTML 的 `<style>` 中
-- 新增脚本 → 页面初始化逻辑放在 HTML 内联 `<script>` 中，可复用的逻辑模块放在独立 `.js` 文件
 
 ---
 
@@ -354,31 +332,24 @@ localStorage.setItem('tetris_high', String(score))
 |------|------|------|
 | `index.html` | 博客主页 | Hero / 关于 / 文章 / 项目 / 联系 |
 | `games.html` | 游戏厅 | 游戏列表 + 分类筛选 |
-| `play.html?game=snake` | 贪吃蛇 | 通用游戏播放页，动态加载对应脚本 |
-| `play.html?game=tetris` | 俄罗斯方块 | 通用游戏播放页，动态加载对应脚本 |
+| `play-snake.html` | 贪吃蛇 | 正方形 Canvas，无侧边栏 |
+| `play-tetris.html` | 俄罗斯方块 | 竖屏 Canvas + NEXT预览 + INFO侧边栏 |
 
 **导航关系：**
 ```
-index.html ──→ games.html ──→ play.html?game=xxx
-    ↑              │
-    └──────────────┘ (返回首页)
+index.html → games.html → play-xxx.html
+    ↑            │
+    └────────────┘ (返回首页)
 ```
-
-**`play.html` 工作原理：**
-- 读取 URL 参数 `?game=xxx`
-- 从 `GAME_CONFIG` 查找对应游戏的配置（脚本路径、类名、标题等）
-- 动态创建 `<script>` 标签加载游戏模块
-- 游戏类挂载在 `window` 全局上（不使用 ES module）
-- 触屏事件通过检测方法是否存在适配不同游戏（`game.rotate` / `game.moveLeft` 等）
 
 ---
 
 ## 12. 部署
 
 - 平台：Vercel
-- 配置：`vercel.json`（已配置 `cleanUrls: true`）
+- 配置：`vercel.json`（`cleanUrls: true`）
 - 每次 push 到 GitHub main 分支自动部署
-- 无需构建步骤，纯静态文件直接部署
+- 纯静态文件，无需构建步骤
 
 ---
 
@@ -390,12 +361,12 @@ index.html ──→ games.html ──→ play.html?game=xxx
 | 游戏厅 UI | ✅ 完整可用 |
 | 贪吃蛇 | ✅ 已实现 |
 | 俄罗斯方块 | ✅ 已实现 |
+| 井字棋 | 📅 规划中 |
+| 2048 | 📅 规划中 |
 | 扫雷 | 📅 规划中 |
 | Flappy Bird | 📅 规划中 |
-| 2048 | 📅 规划中 |
 | 乒乓球 | 📅 规划中 |
 | 太空入侵者 | 📅 规划中 |
-| 井字棋 | 📅 规划中 |
 | 数独 | 📅 规划中 |
 
 ---

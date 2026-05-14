@@ -190,35 +190,105 @@ class TetrisGame {
     // 消行检测
     this.clearLines();
 
-    // 生成下一个方块
-    this.spawnPiece();
-    this.render();
-    this.renderPreview();
+    // 如果没有消除动画，继续生成下一个方块
+    if (this.clearingRows.length === 0) {
+      this.spawnPiece();
+      this.render();
+      this.renderPreview();
+    }
   }
 
-  // ========== 消行 ==========
+  // ========== 消行（带消除动画） ==========
   clearLines() {
-    let cleared = 0;
+    // 找出需要消除的行
+    const toClear = [];
     for (let r = this.rows - 1; r >= 0; r--) {
       if (this.board[r].every(cell => cell !== null)) {
-        this.board.splice(r, 1);
-        this.board.unshift(Array(this.cols).fill(null));
-        cleared++;
-        r++; // 重新检查当前行
+        toClear.push(r);
       }
     }
 
-    if (cleared > 0) {
-      this.lines += cleared;
-      const lineScores = [0, 10, 30, 60, 100];
-      this.score += (lineScores[cleared] || 100) * this.level;
-      this.onScoreChange(this.score);
+    if (toClear.length === 0) return;
 
-      // 每清除 10 行升一级
-      const newLevel = Math.floor(this.lines / 10) + 1;
-      if (newLevel > this.level) {
-        this.level = newLevel;
-        this.baseInterval = Math.max(100, 500 - (this.level - 1) * 40);
+    this.pendingClears = toClear.length;
+    this.clearingRows = toClear;
+    this.clearingFrame = 0;
+
+    // 暂停下落循环，播放消除动画
+    if (this.tickTimer) {
+      clearTimeout(this.tickTimer);
+      this.tickTimer = null;
+    }
+
+    // 用 requestAnimationFrame 驱动消除动画（约12帧 = 200ms）
+    this.animateClear();
+  }
+
+  animateClear() {
+    this.clearingFrame = 0;
+    this.clearingRowsVisible = true;
+    // 清空当前方块引用（已被写入棋盘，闪烁时不再绘制）
+    this.currentPiece = null;
+    this.flashCycle();
+  }
+
+  flashCycle() {
+    this.clearingFrame++;
+
+    // 切换可见性：亮 → 暗 → 亮 → 暗 ...
+    this.clearingRowsVisible = this.clearingFrame % 2 === 1;
+    this.render();
+
+    if (this.clearingFrame < 8) {
+      // 4次闪烁 = 8次切换，每次~160ms，总时长~1.3s
+      this.clearingTimer = setTimeout(() => this.flashCycle(), 100);
+    } else {
+      // 动画结束，最终亮一次后消除
+      this.clearingRowsVisible = true;
+      this.render();
+      setTimeout(() => this.finishClear(), 80);
+    }
+  }
+
+  finishClear() {
+    const cleared = this.pendingClears;
+
+    // 按从下到上的顺序消除
+    const sorted = [...this.clearingRows].sort((a, b) => b - a);
+    for (const r of sorted) {
+      this.board.splice(r, 1);
+      this.board.unshift(Array(this.cols).fill(null));
+    }
+
+    this.clearingRows = [];
+    this.clearingFrame = 0;
+    this.pendingClears = 0;
+
+    // 计分
+    this.lines += cleared;
+    const lineScores = [0, 10, 30, 60, 100];
+    this.score += (lineScores[cleared] || 100) * this.level;
+    this.onScoreChange(this.score);
+
+    // 每清除 10 行升一级
+    const newLevel = Math.floor(this.lines / 10) + 1;
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      this.baseInterval = Math.max(100, 500 - (this.level - 1) * 40);
+    }
+
+    // 递归检查是否有新的满行产生（消除后上方方块下落可能形成）
+    this.clearLines();
+
+    // 如果没有消除动画，继续流程
+    if (this.clearingRows.length === 0) {
+      this.spawnPiece();
+      this.render();
+      this.renderPreview();
+
+      // 恢复下落循环
+      if (this.isRunning && !this.isPaused && !this.isGameOver) {
+        this.tickTimer = setTimeout(() => this.tick(), this.baseInterval);
       }
     }
   }
@@ -327,12 +397,46 @@ class TetrisGame {
       ctx.stroke();
     }
 
-    // 绘制已固定的方块
+    // 绘制已固定的方块（排除正在消除的行）
+    const clearingSet = new Set(this.clearingRows);
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
-        if (this.board[r][c]) {
+        if (this.board[r][c] && !clearingSet.has(r)) {
           this.drawBlock(ctx, c * gs, r * gs, this.board[r][c], gs);
         }
+      }
+    }
+
+    // 消除动画：闪烁（亮/暗切换）
+    if (this.clearingRows.length > 0 && this.clearingRowsVisible) {
+      for (const r of this.clearingRows) {
+        // 全行白色覆盖
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(0, r * gs, canvasW, gs);
+
+        // 行内方块白色高亮
+        for (let c = 0; c < this.cols; c++) {
+          if (this.board[r][c]) {
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 16;
+            this.roundRect(ctx, c * gs + 2, r * gs + 2, gs - 4, gs - 4, 4);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        }
+
+        // 行边界青色闪光
+        ctx.strokeStyle = '#00cec9';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, r * gs);
+        ctx.lineTo(canvasW, r * gs);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, (r + 1) * gs);
+        ctx.lineTo(canvasW, (r + 1) * gs);
+        ctx.stroke();
       }
     }
 
@@ -490,6 +594,10 @@ class TetrisGame {
   // ========== 销毁 ==========
   destroy() {
     this.stop();
+    if (this.clearingTimer) {
+      clearTimeout(this.clearingTimer);
+      this.clearingTimer = null;
+    }
     this.unbindControls();
   }
 }

@@ -2,7 +2,7 @@
    Alchemist's Lab · 构建版本信息
    ============================================ */
 (function() {
-  const BUILD_TIME = '2026.05.13.2319';
+  const BUILD_TIME = '2026.05.14.2355';
 
   function addVersionBadge() {
     const badge = document.createElement('div');
@@ -13,7 +13,6 @@
     `;
     document.body.appendChild(badge);
 
-    // 样式
     const style = document.createElement('style');
     style.textContent = `
       #version-badge {
@@ -38,15 +37,9 @@
         transition: color 0.3s ease;
         line-height: 1;
       }
-      #version-badge .v-icon {
-        color: rgba(108, 92, 231, 0.4);
-      }
-      #version-badge:hover {
-        color: rgba(144, 144, 168, 0.8);
-      }
-      #version-badge:hover .v-icon {
-        color: rgba(108, 92, 231, 0.7);
-      }
+      #version-badge .v-icon { color: rgba(108, 92, 231, 0.4); }
+      #version-badge:hover { color: rgba(144, 144, 168, 0.8); }
+      #version-badge:hover .v-icon { color: rgba(108, 92, 231, 0.7); }
     `;
     document.head.appendChild(style);
   }
