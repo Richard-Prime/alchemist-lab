@@ -2,7 +2,7 @@
    Alchemist's Lab · 构建版本信息
    ============================================ */
 (function() {
-  const BUILD_TIME = '2026.05.14.2355';
+  const BUILD_TIME = '2026.05.15.0006';
 
   function addVersionBadge() {
     const badge = document.createElement('div');

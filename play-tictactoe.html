@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>❌ 井字棋 · Alchemist's Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    .play-page .navbar.scrolled { background: rgba(10, 10, 15, 0.85); }
+
+    .play-container {
+      position: relative; z-index: 1; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 100px 24px 60px;
+    }
+
+    .play-header { text-align: center; margin-bottom: 28px; width: 100%; max-width: 480px; }
+    .play-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+    .play-header .game-subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .play-scorebar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 480px; margin-bottom: 12px; padding: 12px 20px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 0.85rem;
+    }
+    .play-scorebar .score-label { color: var(--text-muted); }
+    .play-scorebar .score-value { color: var(--accent); font-weight: 600; }
+    .play-scorebar .high-score-value { color: var(--accent-warm); font-weight: 600; }
+
+    .play-canvas-wrapper {
+      position: relative; width: 100%; max-width: 480px;
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    }
+    .play-canvas-wrapper canvas {
+      display: block; width: 100%; height: auto; aspect-ratio: 1; background: #0d0d14;
+    }
+
+    .play-controls {
+      display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; justify-content: center;
+    }
+    .play-controls .btn { min-width: 100px; justify-content: center; }
+
+    .play-tips {
+      text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.8;
+    }
+    .play-tips kbd {
+      display: inline-block; padding: 2px 8px; font-family: var(--font-mono);
+      font-size: 0.78rem; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text-secondary);
+    }
+
+    @media (max-width: 480px) {
+      .play-header h1 { font-size: 1.4rem; }
+      .play-scorebar { font-size: 0.75rem; padding: 10px 14px; }
+    }
+
+    .game-over-overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease; border-radius: var(--radius);
+    }
+    .game-over-overlay.show { opacity: 1; pointer-events: auto; }
+    .game-over-overlay .go-icon { font-size: 3rem; margin-bottom: 8px; }
+    .game-over-overlay .go-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .game-over-overlay .go-message { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 16px; }
+    .game-over-overlay .go-score { font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 4px; }
+    .game-over-overlay .go-high { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-warm); margin-bottom: 20px; }
+    .game-over-overlay .go-btns { display: flex; gap: 12px; }
+  </style>
+</head>
+<body class="play-page">
+  <canvas id="particles"></canvas>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo"><Alchemist /></a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">首页</a>
+        <a href="games.html">🎮 游戏厅</a>
+      </div>
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <div class="play-container">
+    <div class="play-header">
+      <h1>❌ 井字棋</h1>
+      <p class="game-subtitle">你执 <span style="color:#6c5ce7">X（紫）</span>，AI 执 <span style="color:#fd79a8">O（粉）</span>，点击棋盘落子</p>
+    </div>
+
+    <div class="play-scorebar">
+      <span><span class="score-label">胜</span> <span class="score-value" id="winsDisplay">0</span></span>
+      <span><span class="score-label">负</span> <span class="high-score-value" id="lossesDisplay">0</span></span>
+      <span><span class="score-label">平</span> <span class="score-value" id="drawsDisplay">0</span></span>
+      <span><span class="score-label">🏆</span> <span class="high-score-value" id="highScoreDisplay">0</span></span>
+    </div>
+
+    <div class="play-canvas-wrapper">
+      <canvas id="gameCanvas" width="480" height="480"></canvas>
+      <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="go-icon" id="goIcon">💀</div>
+        <div class="go-title" id="goTitle">Game Over</div>
+        <div class="go-message" id="goMessage">AI 永不落败，再试一次？</div>
+        <div class="go-score">得分：<span id="goScore">0</span></div>
+        <div class="go-high">🏆 最高分：<span id="goHigh">0</span></div>
+        <div class="go-btns">
+          <button class="btn primary" id="restartBtn">🔄 再来一局</button>
+          <a href="games.html" class="btn secondary">← 返回游戏厅</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="play-controls">
+      <button class="btn primary" id="startBtn">▶ 开始游戏</button>
+      <button class="btn secondary" id="pauseBtn" disabled>⏸ 暂停</button>
+    </div>
+
+    <div class="play-tips">
+      点击棋盘任意格子落子 ✦ <kbd>P</kbd> 暂停
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-text">
+        <span class="footer-cmd">$ echo "Tic Tac Toe — AI using Minimax."</span><br>
+        <span class="footer-out">→ © 2026 Alchemist's Lab. Built with Canvas.</span>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script src="games/tictactoe.js"></script>
+  <script src="version.js"></script>
+  <script>
+    let game = null;
+
+    const winsDisplay = document.getElementById('winsDisplay');
+    const lossesDisplay = document.getElementById('lossesDisplay');
+    const drawsDisplay = document.getElementById('drawsDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+
+    function startGame() {
+      if (game) { game.destroy(); }
+      gameOverOverlay.classList.remove('show');
+
+      game = new TicTacToeGame('gameCanvas', {
+        onScoreChange: (score) => {
+          winsDisplay.textContent = game.wins;
+          lossesDisplay.textContent = game.losses;
+          drawsDisplay.textContent = game.draws;
+        },
+        onGameOver: (message, score, highScore, isWin) => {
+          const result = game ? game.gameResult : null;
+          document.getElementById('goIcon').textContent = isWin ? '🎉' : result === 'draw' ? '🤝' : '💀';
+          document.getElementById('goTitle').textContent = isWin ? '恭喜！' : result === 'draw' ? '平局' : 'Game Over';
+          document.getElementById('goMessage').textContent = message;
+          document.getElementById('goScore').textContent = score;
+          document.getElementById('goHigh').textContent = highScore;
+          gameOverOverlay.classList.add('show');
+
+          highScoreDisplay.textContent = highScore;
+          winsDisplay.textContent = game.wins;
+          lossesDisplay.textContent = game.losses;
+          drawsDisplay.textContent = game.draws;
+          startBtn.textContent = '🔄 再来一局';
+          pauseBtn.disabled = true;
+          pauseBtn.textContent = '⏸ 暂停';
+        }
+      });
+
+      highScoreDisplay.textContent = game.highScore || '0';
+      winsDisplay.textContent = '0';
+      lossesDisplay.textContent = '0';
+      drawsDisplay.textContent = '0';
+
+      game.bindControls();
+      game.start();
+      startBtn.textContent = '🔄 重新开始';
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '⏸ 暂停';
+    }
+
+    function togglePause() {
+      if (!game || !game.isRunning) return;
+      game.togglePause();
+      pauseBtn.textContent = game.isPaused ? '▶ 继续' : '⏸ 暂停';
+    }
+
+    startBtn.addEventListener('click', startGame);
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('restartBtn').addEventListener('click', startGame);
+
+    highScoreDisplay.textContent = localStorage.getItem('tictactoe_high') || '0';
+  </script>
+</body>
+</html>

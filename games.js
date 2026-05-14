@@ -75,7 +75,7 @@ const gamesData = [
     desc: '三子棋人机对战，AI 使用 Minimax 算法，永不落败。',
     category: 'strategy',
     difficulty: 'easy',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'sudoku',
