@@ -30,7 +30,7 @@ const gamesData = [
     desc: '经典逻辑推理游戏，找出所有地雷即可获胜。',
     category: 'puzzle',
     difficulty: 'medium',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'flappy',
