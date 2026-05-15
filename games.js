@@ -54,10 +54,10 @@ const gamesData = [
     id: 'pong',
     icon: '🏓',
     title: '乒乓球',
-    desc: '双人对战或人机对战，经典街机乒乓，看谁先得 5 分。',
+    desc: '人机对战，经典街机乒乓，看谁先得 5 分。',
     category: 'arcade',
     difficulty: 'easy',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'space-invaders',
