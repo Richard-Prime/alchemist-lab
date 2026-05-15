@@ -48,7 +48,7 @@ const gamesData = [
     desc: '合并相同数字方块，挑战到达 2048！支持键盘滑动。',
     category: 'puzzle',
     difficulty: 'medium',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'pong',
